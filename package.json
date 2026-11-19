@@ -1,0 +1,19 @@
+{
+  "name": "muhammad-talha-portfolio",
+  "version": "1.0.0",
+  "description": "Neon developer portfolio for Muhammad Talha — HTML, CSS, JS, Node.js, Express & MySQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:setup": "node database/setup.js"
+  },
+  "author": "Muhammad Talha",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.6.0"
+  }
+}
