@@ -9,14 +9,6 @@ const express = require('express');
 const db = require('./config/db');
 const { verifyMailer } = require('./config/mailer');
 
-// ---------- 0. Check required settings ----------
-const required = ['DB_USER', 'DB_NAME'];
-const missing = required.filter((key) => !process.env[key]);
-if (missing.length > 0) {
-  console.error(`✖  Missing in .env: ${missing.join(', ')}  (copy .env.example to .env first)`);
-  process.exit(1);
-}
-
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -59,7 +51,16 @@ app.use((err, req, res, next) => {
 });
 
 // ---------- 5. Start ----------
+// Used by  npm start  on your computer (or any normal Node host like Render).
 async function start() {
+  // Check required settings
+  const required = ['DB_USER', 'DB_NAME'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    console.error(`✖  Missing in .env: ${missing.join(', ')}  (copy .env.example to .env first)`);
+    process.exit(1);
+  }
+
   try {
     await db.query('SELECT 1'); // quick test that MySQL is reachable
     console.log(`✔  Connected to MySQL database "${process.env.DB_NAME}"`);
@@ -77,4 +78,10 @@ async function start() {
   });
 }
 
-start();
+// Only start a server when this file is run directly (node server.js).
+// On Vercel, api/index.js imports the app instead and Vercel runs it for each request.
+if (require.main === module) {
+  start();
+}
+
+module.exports = app;
