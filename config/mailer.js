@@ -46,8 +46,7 @@ function escapeHTML(value) {
 }
 
 // Email the site owner when someone submits the contact form.
-// Returns true if sent, false otherwise — it never throws, so a mail
-// problem can't break the contact form (the message is already in MySQL).
+// Returns true if sent, false otherwise — it never throws.
 async function sendContactNotification({ name, email, subject, message }) {
   if (!isMailConfigured()) return false;
 

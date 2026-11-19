@@ -6,7 +6,6 @@ require('dotenv').config({ quiet: true }); // loads variables from .env into pro
 const path = require('path');
 const express = require('express');
 
-const db = require('./config/db');
 const { verifyMailer } = require('./config/mailer');
 
 const app = express();
@@ -53,24 +52,6 @@ app.use((err, req, res, next) => {
 // ---------- 5. Start ----------
 // Used by  npm start  on your computer (or any normal Node host like Render).
 async function start() {
-  // Check required settings
-  const required = ['DB_USER', 'DB_NAME'];
-  const missing = required.filter((key) => !process.env[key]);
-  if (missing.length > 0) {
-    console.error(`✖  Missing in .env: ${missing.join(', ')}  (copy .env.example to .env first)`);
-    process.exit(1);
-  }
-
-  try {
-    await db.query('SELECT 1'); // quick test that MySQL is reachable
-    console.log(`✔  Connected to MySQL database "${process.env.DB_NAME}"`);
-  } catch (err) {
-    console.error('✖  Could not connect to MySQL:', err.message);
-    console.error('   → Check DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in .env');
-    console.error('   → Create the database first with:  npm run db:setup');
-    process.exit(1);
-  }
-
   await verifyMailer();
 
   app.listen(PORT, () => {

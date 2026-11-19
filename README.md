@@ -1,10 +1,10 @@
 # Muhammad Talha — Developer Portfolio
 
 A clean, dark personal portfolio. The pages are plain HTML/CSS/JS; a small
-Node.js + Express backend loads the **projects from MySQL** and handles the
-**contact form** (saved in MySQL + emailed with Nodemailer / Gmail SMTP).
+Node.js + Express backend serves a **projects CRUD API** (no database — projects live in
+`data/projects.js`) and handles the **contact form** (emailed with Nodemailer / Gmail SMTP).
 
-**Stack:** HTML5 · CSS3 · Vanilla JavaScript · Node.js · Express · MySQL · Nodemailer
+**Stack:** HTML5 · CSS3 · Vanilla JavaScript · Node.js · Express · Nodemailer
 
 ---
 
@@ -17,21 +17,18 @@ Portfolio/
 │   ├── js/
 │   │   ├── main.js         ← shared: fetch helper, navbar, toasts, animations
 │   │   ├── home.js         ← typing effect in the hero heading
-│   │   ├── projects.js     ← loads projects from MySQL
+│   │   ├── projects.js     ← loads projects from the API
 │   │   └── contact.js      ← sends the contact form
 │   ├── images/             ← favicon + technology logos (images/icons)
 │   ├── files/              ← downloadable CV
 │   └── index.html  about.html  skills.html  projects.html  contact.html
-├── config/
-│   ├── db.js               ← MySQL connection pool
-│   └── mailer.js           ← Nodemailer (Gmail SMTP)
+├── config/mailer.js        ← Nodemailer (Gmail SMTP)
+├── data/projects.js        ← the project list (edit this to change projects)
 ├── routes/
-│   ├── projects.js         ← GET /api/projects
+│   ├── projects.js         ← CRUD /api/projects
 │   └── contact.js          ← POST /api/contact
 ├── utils/validate.js       ← input validation helpers
-├── database/
-│   ├── schema.sql          ← creates DB + 2 tables + CV projects
-│   └── setup.js            ← runs schema.sql (npm run db:setup)
+├── api/index.js            ← Vercel entry point
 ├── server.js               ← app entry point
 ├── package.json
 └── .env.example            ← copy to .env
@@ -41,7 +38,7 @@ Portfolio/
 
 ## 1. Installation
 
-Requirements: **Node.js 18+** and **MySQL 8**.
+Requirements: **Node.js 18+**. No database needed.
 
 ```bash
 cd Portfolio
@@ -60,43 +57,25 @@ cp .env.example .env          # Git Bash / macOS / Linux
 | Variable | What to put |
 |---|---|
 | `PORT` | `3000` |
-| `DB_HOST` / `DB_PORT` | `localhost` / `3306` |
-| `DB_USER` / `DB_PASSWORD` | your MySQL login (usually `root` + your password) |
-| `DB_NAME` | `portfolio_db` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | `smtp.gmail.com` / `465` / `true` |
 | `SMTP_USER` | your Gmail address |
 | `SMTP_PASS` | a 16-character Gmail **App Password** (see below) |
 | `MAIL_FROM_NAME` | sender name shown in emails |
 | `CONTACT_RECEIVER` | where contact-form notifications go |
+| `ADMIN_KEY` | secret for creating / editing / deleting projects (empty = editing disabled) |
 
 **Getting a Gmail App Password:** Google Account → **Security** → turn on **2-Step Verification** →
 search **"App passwords"** → create one called "Portfolio" → paste the 16 characters (no spaces) into `SMTP_PASS`.
 Your normal Gmail password will **not** work.
 
-> If SMTP is not filled in, the site still works — the message is saved in MySQL, the email is skipped
-> and a warning is printed in the terminal.
+> SMTP must be filled in for the contact form to work — there is no database, so if the email
+> can't be sent the visitor gets an error and is asked to try again.
 
-## 3. MySQL database setup
+## 3. Projects (no database)
 
-**Option A — one command (recommended):**
-
-```bash
-npm run db:setup
-```
-
-**Option B — MySQL Workbench:** *File → Open SQL Script* → choose `database/schema.sql` → click ⚡ Execute.
-
-**Option C — command line (PowerShell):**
-
-```powershell
-Get-Content database\schema.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p
-```
-
-This creates `portfolio_db` with 2 tables — `projects` and `contact_messages` — and inserts the
-4 projects from the CV. It is safe to run again (nothing is deleted or duplicated).
-
-**Adding a project:** copy one of the `INSERT` rows in `schema.sql`, give it the next id and run it in
-Workbench — it appears on the Projects page immediately.
+Projects are stored in **`data/projects.js`**. To add one permanently, copy a block, give it the
+next id and edit the text. The CRUD API below changes the list **in memory only** — changes are
+lost when the server restarts (on Vercel, whenever the serverless instance is recycled).
 
 ## 4. Run the project
 
@@ -108,7 +87,6 @@ npm run dev        # auto-restarts when you edit server files
 Open **http://localhost:3000**. The terminal should show:
 
 ```
-✔  Connected to MySQL database "portfolio_db"
 ✔  SMTP ready — connected to smtp.gmail.com
 🚀 Portfolio running at http://localhost:3000
 ```
@@ -121,27 +99,40 @@ Open **http://localhost:3000**. The terminal should show:
 |---|---|---|
 | GET | `/api/projects` | list all projects (newest first) |
 | GET | `/api/projects/:id` | one project |
-| POST | `/api/contact` | validate + save message in MySQL + email notification |
+| POST | `/api/projects` | create a project (needs `x-admin-key` header) |
+| PUT | `/api/projects/:id` | update a project (needs `x-admin-key` header) |
+| DELETE | `/api/projects/:id` | delete a project (needs `x-admin-key` header) |
+| POST | `/api/contact` | validate + email notification |
+
+Example (Git Bash):
+
+```bash
+curl -X POST http://localhost:3000/api/projects   -H "Content-Type: application/json" -H "x-admin-key: YOUR_ADMIN_KEY"   -d '{"title":"New App","category":"Web Application","description":"What it does, at least 10 chars","tech_stack":"HTML, CSS"}'
+```
+
+Body fields: `title`, `category`, `description` (one bullet per line), `tech_stack` (comma separated),
+`project_url` (optional).
 
 ---
 
 ## 5. Lab demonstration guide (≈ 5 minutes)
 
-Keep the browser, the terminal running `npm start`, and **MySQL Workbench** open.
+Keep the browser and the terminal running `npm start` open.
 
 | # | What to show | What to point at |
 |---|---|---|
 | 1 | Walk through Home → About → Skills → Projects → Contact. Show the typing effect and resize the window (or DevTools phone mode) to show it is responsive. | `public/css/style.css` — variables at the top, `@media` rules at the bottom |
-| 2 | Projects page: the cards and category filters come from MySQL. In Workbench run `UPDATE projects SET title = 'SmartSort AI (updated)' WHERE id = 4;` → refresh the page → the title changes. | `routes/projects.js` (`SELECT` with `db.execute`) and `public/js/projects.js` (`fetch`) |
-| 3 | Submit the Contact form → success message → notification email arrives in `CONTACT_RECEIVER` (press Reply to answer the visitor). | `routes/contact.js`, `config/mailer.js`; Workbench: `SELECT * FROM contact_messages;` |
+| 2 | Projects page: the cards and category filters come from the API. Run a `PUT /api/projects/4` (see the curl example) to change the title → refresh the page → the title changes. Then `DELETE` it and refresh again. | `routes/projects.js` (CRUD) and `public/js/projects.js` (`fetch`) |
+| 3 | Submit the Contact form → success message → notification email arrives in `CONTACT_RECEIVER` (press Reply to answer the visitor). | `routes/contact.js`, `config/mailer.js` |
 | 4 | Submit the form with an empty name / bad email / short message → clear error messages. | Browser check in `public/js/contact.js`, server check in `routes/contact.js` + `utils/validate.js` |
-| 5 | Explain security basics: prepared statements (`?` placeholders), HTML escaping before showing data (`escapeHTML`), secrets kept in `.env`. | `config/db.js`, `public/js/main.js` |
+| 5 | Explain security basics: server-side validation, admin key on write routes, HTML escaping before showing data (`escapeHTML`), secrets kept in `.env`. | `routes/projects.js`, `public/js/main.js` |
 
 **Good questions to be ready for**
 
 - *How does the frontend talk to the backend?* — `fetch()` calls the JSON API (`/api/projects`, `/api/contact`).
-- *What stops SQL injection?* — every query uses `?` placeholders with `db.execute()`, so input is never glued into SQL.
-- *What happens if Gmail is down?* — the message is still saved in MySQL; `sendContactNotification` catches the error.
+- *Where is the data stored?* — projects start from `data/projects.js` and are kept in server memory; there is no database.
+- *Who can edit projects?* — only requests with the right `x-admin-key` header (`ADMIN_KEY` in `.env`).
+- *What happens if Gmail is down?* — `sendContactNotification` catches the error and the visitor is asked to try again.
 
 ---
 
@@ -149,14 +140,14 @@ Keep the browser, the terminal running `npm start`, and **MySQL Workbench** open
 
 - **Profile photo:** replace `public/images/profile.jpg` with a new square photo (keep the same name) —
   it is used in the Home hero card and the small navbar avatar on every page.
-- **Project links:** fill the `project_url` column of a project (e.g. a GitHub link) — a **View project** button appears on its card.
+- **Project links:** fill the `project_url` field of a project in `data/projects.js` (e.g. a GitHub link) — a **View project** button appears on its card.
 - **CV:** replace `public/files/Muhammad_Talha_CV.pdf` with an updated version (keep the same name).
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `Could not connect to MySQL: Access denied` | Wrong `DB_USER` / `DB_PASSWORD` in `.env` |
-| `Unknown database 'portfolio_db'` | Run `npm run db:setup` |
+| `Editing is disabled` / `Wrong or missing admin key` | Set `ADMIN_KEY` in `.env` and send it as `x-admin-key` |
+| Contact form says "Could not send your message" | SMTP is not configured or the login failed — check `SMTP_*` in `.env` |
 | `SMTP login failed: Invalid login` | Use a Gmail **App Password**; 2-Step Verification must be on |
 | `EADDRINUSE: port 3000` | Another app uses port 3000 — change `PORT` in `.env` |

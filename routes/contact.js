@@ -1,9 +1,8 @@
 // routes/contact.js
-// Contact form: save the message in MySQL and email the site owner.
+// Contact form: email the message to the site owner (no database).
 //   POST /api/contact
 
 const express = require('express');
-const db = require('../config/db');
 const { sendContactNotification } = require('../config/mailer');
 const { clean, isEmail } = require('../utils/validate');
 
@@ -30,24 +29,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Message must be between 10 and 2000 characters.' });
   }
 
-  try {
-    // 2. Save in MySQL (prepared statement with ? placeholders)
-    await db.execute(
-      'INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)',
-      [name, email, subject, message]
-    );
-
-    // 3. Email notification to the owner (a mail error does not lose the message)
-    const emailSent = await sendContactNotification({ name, email, subject, message });
-
-    res.status(201).json({
-      message: 'Thanks! Your message has been sent. I will get back to you soon.',
-      emailSent,
-    });
-  } catch (err) {
-    console.error('Contact error:', err.message);
-    res.status(500).json({ error: 'Could not send your message. Please try again.' });
+  // 2. Email the message to the owner. There is no database, so if the
+  //    email fails the message would be lost — tell the visitor to retry.
+  const emailSent = await sendContactNotification({ name, email, subject, message });
+  if (!emailSent) {
+    return res.status(500).json({ error: 'Could not send your message. Please try again later.' });
   }
+
+  res.status(201).json({
+    message: 'Thanks! Your message has been sent. I will get back to you soon.',
+  });
 });
 
 module.exports = router;

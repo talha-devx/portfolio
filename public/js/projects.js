@@ -1,4 +1,4 @@
-/* projects.js — loads projects from MySQL (via the API) and shows them as cards */
+/* projects.js — loads projects from data/projects.js (via the API) and shows them as cards */
 
 const projectsGrid = document.getElementById('projectsGrid');
 const projectFilters = document.getElementById('projectFilters');
