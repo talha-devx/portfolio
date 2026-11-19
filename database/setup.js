@@ -6,6 +6,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const { getSSLConfig } = require('../config/ssl');
 
 async function setup() {
   const dbName = process.env.DB_NAME || 'portfolio_db';
@@ -20,6 +21,7 @@ async function setup() {
     port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
+    ssl: getSSLConfig(), // needed for cloud databases like Aiven
     multipleStatements: true, // schema.sql contains many statements
   });
 

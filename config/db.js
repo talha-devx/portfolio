@@ -4,6 +4,7 @@
 // We use the "promise" version of mysql2 so we can write async/await code.
 
 const mysql = require('mysql2/promise');
+const { getSSLConfig } = require('./ssl');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -11,6 +12,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'portfolio_db',
+  ssl: getSSLConfig(), // needed for cloud databases like Aiven, see config/ssl.js
   waitForConnections: true,
   connectionLimit: 10,
 });
