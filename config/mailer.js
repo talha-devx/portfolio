@@ -4,20 +4,23 @@
 
 const nodemailer = require('nodemailer');
 
+// Gmail shows App Passwords as "abcd efgh ijkl mnop" — remove spaces in case they were pasted in.
+const SMTP_PASS = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 465,
   secure: process.env.SMTP_SECURE !== 'false', // true = SSL on port 465
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, // Gmail "App Password", not your normal password
+    pass: SMTP_PASS, // Gmail "App Password", not your normal password
   },
 });
 
 // Returns true only when real SMTP credentials are filled in .env
 function isMailConfigured() {
   const user = process.env.SMTP_USER || '';
-  const pass = process.env.SMTP_PASS || '';
+  const pass = SMTP_PASS;
   return user !== '' && pass !== '' && !user.startsWith('your_');
 }
 
@@ -48,7 +51,11 @@ function escapeHTML(value) {
 // Email the site owner when someone submits the contact form.
 // Returns true if sent, false otherwise — it never throws.
 async function sendContactNotification({ name, email, subject, message }) {
-  if (!isMailConfigured()) return false;
+  if (!isMailConfigured()) {
+    // On Vercel verifyMailer() never runs, so log here to make the cause visible in the logs
+    console.error('✖  Email not sent: SMTP_USER / SMTP_PASS are not set (add them to .env or Vercel env vars)');
+    return false;
+  }
 
   const receiver = process.env.CONTACT_RECEIVER || process.env.SMTP_USER;
   try {
